@@ -1,0 +1,6 @@
+[Service]
+Type=simple
+ExecStart=/usr/bin/bash -c "journalctl -n all -o json -f | glogger"
+
+[Install]
+WantedBy=multi-user.target
