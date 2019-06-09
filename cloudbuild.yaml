@@ -1,0 +1,13 @@
+steps:
+- name: 'gcr.io/cloud-builders/go'
+  args: ['install', './glogger']
+  env:
+  - PROJECT_ROOT=source.baburke.net/baburke-services/gcloud-logger
+  - GOOS=linux
+  - GOARCH=amd64
+- name: 'gcr.io/cloud-builders/go'
+  args: ['test', '-v', './glogger']
+  env:
+  - PROJECT_ROOT=source.baburke.net/baburke-services/gcloud-logger
+  - GOOS=linux
+  - GOARCH=amd64
