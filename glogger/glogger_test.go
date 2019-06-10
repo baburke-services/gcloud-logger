@@ -24,22 +24,39 @@ func TestNewLogReaderSize(t *testing.T) {
 
 func TestFromJsonString(t *testing.T) {
 	reader := NewLogReader(-1)
-	bytes := []byte(`"whatever test"`)
+	bytes := []byte(`[
+		"whatever test",
+		34,
+		null
+	]`)
 	ch := reader.FromJsonBytes(bytes)
-	var data interface{}
-	var ok bool
-	var s string
 
-	data = <-ch
-	s, ok = data.(string)
+	data, ok := <-ch
 	if !ok {
-		t.Errorf("returned data is not a string!\n")
-	} else if s != "whatever test" {
+		t.Errorf("unable to read from channel")
+	}
+
+	array, ok := data.([]interface{})
+	if !ok {
+		t.Error("returned data is not an array\n")
+	}
+
+	if len(array) != 3 {
+		t.Error("array is not length 3")
+	}
+
+	s, ok := array[0].(string)
+	if !ok {
+		t.Error("first element is not string")
+	}
+
+	if s != "whatever test" {
 		t.Errorf("got back the wrong string: %s\n", s)
 	}
-	data, ok = <-ch
+
+	_, ok = <-ch
 	if ok {
-		t.Errorf("this was not the only item on the channel!")
+		t.Error("there was more than one item on the channel")
 	}
 }
 
