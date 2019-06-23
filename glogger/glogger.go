@@ -2,25 +2,25 @@ package glogger
 
 import (
 	"encoding/json"
-	"log"
 	"io"
+	"log"
 	"strconv"
 )
 
 type LogFeeder func(<-chan interface{})
 
 type LogReader struct {
-	events chan *LogEntry
+	events  chan *LogEntry
 	decoder *json.Decoder
-	reader io.Reader
+	reader  io.Reader
 }
 
 type LogEntry struct {
-	raw_data interface{}
-	Message string
-	Level int
+	raw_data  interface{}
+	Message   string
+	Level     int
 	LevelName string
-	Cursor string
+	Cursor    string
 }
 
 type JournalctlReader struct {
@@ -30,19 +30,19 @@ type JournalctlReader struct {
 
 const (
 	EVENT_CHANNEL_SIZE = 25
-	DEFAULT_LOG_LEVEL = 6
+	DEFAULT_LOG_LEVEL  = 6
 )
 
 var LOG_LEVELS = [8]string{
-		"EMERGENCY",
-		"ALERT",
-		"CRITICAL",
-		"ERROR",
-		"WARNING",
-		"NOTICE",
-		"INFO",
-		"DEBUG",
-	}
+	"EMERGENCY",
+	"ALERT",
+	"CRITICAL",
+	"ERROR",
+	"WARNING",
+	"NOTICE",
+	"INFO",
+	"DEBUG",
+}
 
 func NewLogReader(reader io.Reader) *LogReader {
 	log_reader := new(LogReader)
@@ -52,7 +52,7 @@ func NewLogReader(reader io.Reader) *LogReader {
 	return log_reader
 }
 
-func (r *LogReader) StartStream(channel_size int) <-chan *LogEntry{
+func (r *LogReader) StartStream(channel_size int) <-chan *LogEntry {
 	if channel_size < 0 {
 		channel_size = EVENT_CHANNEL_SIZE
 
@@ -86,8 +86,8 @@ func (r *LogReader) read_entry() *LogEntry {
 	var v map[string]string
 	err := r.decoder.Decode(&v)
 	if err != nil {
-		log.Println(err);
-		return nil;
+		log.Println(err)
+		return nil
 	}
 
 	entry := new(LogEntry)
