@@ -1,19 +1,25 @@
 steps:
-- name: 'gcr.io/cloud-builders/go'
-  args: ['install', './glogger']
-  env:
-  - PROJECT_ROOT=source.baburke.net/baburke-services/gcloud-logger
-  - GOOS=linux
-  - GOARCH=amd64
-- name: 'gcr.io/cloud-builders/go'
-  args: ['test', '-v', './glogger']
-  env:
-  - PROJECT_ROOT=source.baburke.net/baburke-services/gcloud-logger
-  - GOOS=linux
-  - GOARCH=amd64
-- name: 'gcr.io/cloud-builders/go'
-  args: ['build', '-o', 'glogger.linux', 'main.go']
-  env:
-  - PROJECT_ROOT=source.baburke.net/baburke-services/gcloud-logger
-  - GOOS=linux
-  - GOARCH=amd64
+  - name: 'gcr.io/cloud-builders/go'
+    args: ['install', './glogger']
+    env:
+      - PROJECT_ROOT=source.baburke.net/baburke-services/gcloud-logger
+      - GOOS=linux
+      - GOARCH=amd64
+  - name: 'gcr.io/cloud-builders/go'
+    args: ['test', '-v', './glogger']
+    env:
+      - PROJECT_ROOT=source.baburke.net/baburke-services/gcloud-logger
+      - GOOS=linux
+      - GOARCH=amd64
+  - name: 'gcr.io/cloud-builders/go'
+    args: ['build', '-o', 'glogger.linux', 'main.go']
+    env:
+      - PROJECT_ROOT=source.baburke.net/baburke-services/gcloud-logger
+      - GOOS=linux
+      - GOARCH=amd64
+
+artifacts:
+  objects:
+    location: gs://net-baburke-services-automation/tools
+    paths:
+      - glogger.linux
