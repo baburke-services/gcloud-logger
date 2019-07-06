@@ -2,21 +2,24 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"source.baburke.net/baburke-services/gcloud-logger/glogger"
 )
 
 func main() {
-	reader := glogger.NewLogReader(os.Stdin)
+	journald, err := glogger.NewJournaldReader()
+	if err != nil {
+		panic(err)
+	}
+
+	reader := glogger.NewLogReader(journald.Reader)
 	log_channel := reader.StartStream(10)
 	for entry := range log_channel {
-		if entry == nil {
-			break
-		}
 		fmt.Printf("%s: %s\n", entry.LevelName, entry.Message)
 	}
 
-	return
+	if err := journald.Close(); err != nil {
+		panic(err)
+	}
 }
 
 // vim: noexpandtab
