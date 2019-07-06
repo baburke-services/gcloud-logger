@@ -11,3 +11,9 @@ steps:
   - PROJECT_ROOT=source.baburke.net/baburke-services/gcloud-logger
   - GOOS=linux
   - GOARCH=amd64
+- name: 'gcr.io/cloud-builders/go'
+  args: ['build', '-o', 'glogger.linux', 'main.go']
+  env:
+  - PROJECT_ROOT=source.baburke.net/baburke-services/gcloud-logger
+  - GOOS=linux
+  - GOARCH=amd64

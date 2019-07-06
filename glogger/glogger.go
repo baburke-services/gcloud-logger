@@ -2,6 +2,7 @@ package glogger
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"log"
 	"strconv"
@@ -32,6 +33,8 @@ const (
 	EVENT_CHANNEL_SIZE = 25
 	DEFAULT_LOG_LEVEL  = 6
 )
+
+var END_OF_STREAM = errors.New("reached end of stream")
 
 var LOG_LEVELS = [8]string{
 	"EMERGENCY",
@@ -64,13 +67,15 @@ func (r *LogReader) StartStream(channel_size int) <-chan *LogEntry {
 	r.events = make(chan *LogEntry, channel_size)
 
 	streamer := func() {
+		defer close(r.events)
+
 		for {
-			entry := r.read_entry()
-			if entry == nil {
-				close(r.events)
+			if entry, err := r.read_entry(); err != nil {
+				log.Print(err)
 				break
+			} else {
+				r.events <- entry
 			}
-			r.events <- entry
 		}
 	}
 
@@ -78,44 +83,37 @@ func (r *LogReader) StartStream(channel_size int) <-chan *LogEntry {
 	return r.events
 }
 
-func (r *LogReader) read_entry() *LogEntry {
+func (r *LogReader) read_entry() (*LogEntry, error) {
 	if !r.decoder.More() {
-		return nil
+		return nil, END_OF_STREAM
 	}
 
 	var v map[string]string
-	err := r.decoder.Decode(&v)
-	if err != nil {
-		log.Println(err)
-		return nil
+	if err := r.decoder.Decode(&v); err != nil {
+		return nil, err
 	}
 
 	entry := new(LogEntry)
 	entry.raw_data = v
 
-	if m, present := v["MESSAGE"]; present {
-		entry.Message = m
-	}
+	entry.Message = v["MESSAGE"]
+	entry.Cursor = v["__CURSOR"]
 
 	if m, present := v["PRIORITY"]; !present {
 		entry.Level = DEFAULT_LOG_LEVEL
-		entry.LevelName = "DEFAULT"
+		entry.LevelName = LOG_LEVELS[DEFAULT_LOG_LEVEL]
 
 	} else if i, err := strconv.Atoi(m); err != nil {
 		log.Printf("could not parse priority %s", m)
 		entry.Level = DEFAULT_LOG_LEVEL
-		entry.LevelName = "DEFAULT"
+		entry.LevelName = LOG_LEVELS[DEFAULT_LOG_LEVEL]
 
 	} else {
 		entry.Level = i
 		entry.LevelName = LOG_LEVELS[i]
 	}
 
-	if m, present := v["__CURSOR"]; present {
-		entry.Cursor = m
-	}
-
-	return entry
+	return entry, nil
 }
 
 // vim: noexpandtab
