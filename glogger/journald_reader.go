@@ -13,7 +13,7 @@ type JournaldReader struct {
 func NewJournaldReader() (*JournaldReader, error) {
     var err error
     reader := new(JournaldReader)
-    reader.cmd = exec.Command("journalctl", "-n", "10", "--output", "json")
+    reader.cmd = exec.Command("journalctl", "--output", "json")
 
     reader.Reader, err = reader.cmd.StdoutPipe()
     if err != nil {
