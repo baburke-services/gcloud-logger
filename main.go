@@ -13,7 +13,12 @@ func main() {
 
 	reader := glogger.NewLogReader(journald.Reader)
 	log_channel := reader.StartStream(10)
-	for entry := range log_channel {
+	post_cursor, err := glogger.CursorProcessor(log_channel)
+	if err != nil {
+		panic(err)
+	}
+
+	for entry := range post_cursor {
 		fmt.Printf("%s: %s\n", entry.LevelName, entry.Message)
 	}
 
