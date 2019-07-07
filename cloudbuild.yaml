@@ -20,6 +20,6 @@ steps:
 
 artifacts:
   objects:
-    location: gs://net-baburke-services-automation/tools
+    location: gs://net-baburke-services-artifacts/ostools
     paths:
       - glogger.linux
