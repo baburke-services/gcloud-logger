@@ -10,10 +10,15 @@ type JournaldReader struct {
 	cmd    *exec.Cmd
 }
 
-func NewJournaldReader() (*JournaldReader, error) {
+func NewJournaldReader(cursor string) (*JournaldReader, error) {
 	var err error
 	reader := new(JournaldReader)
-	reader.cmd = exec.Command("journalctl", "--output", "json")
+
+	if cursor == "" {
+		reader.cmd = exec.Command("journalctl", "--output", "json")
+	} else {
+		reader.cmd = exec.Command("journalctl", "--output", "json", "--cursor", cursor)
+	}
 
 	reader.Reader, err = reader.cmd.StdoutPipe()
 	if err != nil {

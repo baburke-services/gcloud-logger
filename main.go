@@ -2,17 +2,27 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"source.baburke.net/baburke-services/gcloud-logger/glogger"
 )
 
 func main() {
-	journald, err := glogger.NewJournaldReader()
+	cursor, err := glogger.ReadCurrentCursor()
+	if err == glogger.ERROR_NO_CURSOR {
+		log.Print("cursor not found; proceeding")
+	} else if err != nil {
+		panic(err)
+	}
+
+	journald, err := glogger.NewJournaldReader(cursor)
 	if err != nil {
 		panic(err)
 	}
 
+	log.Printf("read cursor %q", cursor)
+
 	reader := glogger.NewLogReader(journald.Reader)
-	log_channel := reader.StartStream(10)
+	log_channel := reader.StartStream(0)
 	post_cursor, err := glogger.CursorProcessor(log_channel)
 	if err != nil {
 		panic(err)
