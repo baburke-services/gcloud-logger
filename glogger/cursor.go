@@ -3,19 +3,36 @@ package glogger
 import (
 	"bytes"
 	"errors"
+	"io"
 	"fmt"
 	"log"
 	"os"
 )
 
-const CURSOR_STATE_FILE = "/var/run/glogger.journald.cursor"
+const (
+	CURSOR_STATE_FILE = "/var/tmp/glogger.journald.cursor"
+)
 
-var ERROR_NO_CURSOR = errors.New("cannot read cursor")
+var (
+	ERROR_NO_CURSOR = errors.New("cannot read cursor")
+)
 
-func ReadCurrentCursor() (string, error) {
+type CursorOpener interface {
+	Open() (io.ReadCloser, error)
+}
+
+type Cursor struct {
+	location string
+}
+
+func (c *Cursor) Open() (io.ReadCloser, error) {
+	return os.Open(c.location)
+}
+
+func read_cursor(opener CursorOpener) (string, error) {
 	var cursor bytes.Buffer
 
-	file, err := os.Open(CURSOR_STATE_FILE)
+	file, err := opener.Open()
 	if err != nil {
 		log.Printf("%v: cannot open cursor file", err)
 		return "", ERROR_NO_CURSOR
@@ -30,6 +47,12 @@ func ReadCurrentCursor() (string, error) {
 	log.Printf("read %v from %v", read, CURSOR_STATE_FILE)
 
 	return cursor.String(), nil
+}
+
+func ReadCurrentCursor() (string, error) {
+	cursor_opener := &Cursor{location: CURSOR_STATE_FILE}
+
+	return read_cursor(cursor_opener)
 }
 
 func CursorProcessor(events <-chan *LogEntry) (<-chan *LogEntry, error) {
