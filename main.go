@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"source.baburke.net/baburke-services/gcloud-logger/glogger"
@@ -37,6 +36,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	defer journald.Close()
 
 	log.Printf("read cursor %q", cursor)
 
@@ -47,13 +47,13 @@ func main() {
 		panic(err)
 	}
 
-	for entry := range post_cursor {
-		fmt.Printf("%s: %s\n", entry.LevelName, entry.Message)
-	}
-
-	if err := journald.Close(); err != nil {
+	glog, err := glogger.NewGLogger()
+	if err != nil {
 		panic(err)
 	}
+
+	done, err := glogger.StartLogForwarder(glog, post_cursor)
+	<-done
 }
 
 // vim: noexpandtab
