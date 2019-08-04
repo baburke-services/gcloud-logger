@@ -22,6 +22,8 @@ func NewGLogger() (*logging.Logger, error) {
 		return nil, err
 	}
 
+	log.Printf("using log name %q", logName)
+
 	logger := client.Logger(logName)
 
 	return logger, nil
