@@ -34,6 +34,7 @@ func StartLogForwarder(
 ) (<-chan bool, error) {
 	done := make(chan bool)
 	go func() {
+		defer logger.Flush()
 		var count uint64 = 0
 		for entry := range entries {
 			severity := logging.ParseSeverity(entry.LevelName)
