@@ -17,19 +17,19 @@ var (
 	ERROR_NO_CURSOR = errors.New("cannot read cursor")
 )
 
-type CursorOpener interface {
+type cursorOpener interface {
 	Open() (io.ReadCloser, error)
 }
 
-type Cursor struct {
+type cursor struct {
 	location string
 }
 
-func (c *Cursor) Open() (io.ReadCloser, error) {
+func (c *cursor) Open() (io.ReadCloser, error) {
 	return os.Open(c.location)
 }
 
-func read_cursor(opener CursorOpener) (string, error) {
+func read_cursor(opener cursorOpener) (string, error) {
 	var cursor bytes.Buffer
 
 	file, err := opener.Open()
@@ -50,7 +50,7 @@ func read_cursor(opener CursorOpener) (string, error) {
 }
 
 func ReadCurrentCursor() (string, error) {
-	cursor_opener := &Cursor{location: CURSOR_STATE_FILE}
+	cursor_opener := &cursor{location: CURSOR_STATE_FILE}
 
 	return read_cursor(cursor_opener)
 }

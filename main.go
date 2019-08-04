@@ -1,12 +1,31 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
+	"os"
 	"source.baburke.net/baburke-services/gcloud-logger/glogger"
 )
 
+type Args struct {
+	follow bool
+}
+
+func parse_args(argv []string) *Args {
+	var args Args
+
+	set := flag.NewFlagSet(argv[0], flag.ExitOnError)
+	set.BoolVar(&args.follow, "follow", false, "follow journald?")
+	set.Parse(argv[1:])
+
+	log.Printf("follow? %v", args.follow)
+
+	return &args
+}
+
 func main() {
+	args := parse_args(os.Args)
 	cursor, err := glogger.ReadCurrentCursor()
 	if err == glogger.ERROR_NO_CURSOR {
 		log.Print("cursor not found; proceeding")
@@ -14,7 +33,7 @@ func main() {
 		panic(err)
 	}
 
-	journald, err := glogger.NewJournaldReader(cursor)
+	journald, err := glogger.NewJournaldReader(cursor, args.follow)
 	if err != nil {
 		panic(err)
 	}
