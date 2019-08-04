@@ -15,7 +15,7 @@ func NewGLogger() (*logging.Logger, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer client.Close()
+	//defer client.Close()
 
 	logName, err := os.Hostname()
 	if err != nil {
