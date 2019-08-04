@@ -14,17 +14,17 @@ func NewJournaldReader(cursor string, follow bool) (*JournaldReader, error) {
 	var err error
 	reader := new(JournaldReader)
 	name := "journalctl"
-	command := []string{"journalctl", "--output", "json"}
+	args := []string{"--output", "json"}
 
 	if cursor != "" {
-		command = append(command, "--cursor", cursor)
+		args = append(args, "--cursor", cursor)
 	}
 
 	if follow {
-		command = append(command, "--follow")
+		args = append(args, "--follow")
 	}
 
-	reader.cmd = exec.Command(name, command...)
+	reader.cmd = exec.Command(name, args...)
 
 	reader.Reader, err = reader.cmd.StdoutPipe()
 	if err != nil {
