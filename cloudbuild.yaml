@@ -20,3 +20,4 @@ artifacts:
     location: gs://net-baburke-services-artifacts/ostools
     paths:
       - glogger.linux
+      - glogger-tmpfiles.conf
