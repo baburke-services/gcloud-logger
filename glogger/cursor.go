@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	CURSOR_STATE_FILE = "/var/tmp/glogger.journald.cursor"
+	CURSOR_STATE_FILE = "/run/glogger/journald.cursor"
 )
 
 var (
