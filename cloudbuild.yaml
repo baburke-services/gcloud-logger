@@ -21,3 +21,4 @@ artifacts:
     paths:
       - glogger.linux
       - glogger-tmpfiles.conf
+      - glogger.service
