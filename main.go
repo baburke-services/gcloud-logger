@@ -47,10 +47,12 @@ func main() {
 		panic(err)
 	}
 
-	glog, err := glogger.NewGLogger()
+	glog, gclient, err := glogger.NewGLogger()
 	if err != nil {
 		panic(err)
 	}
+	defer gclient.Close()
+	defer glog.Flush()
 
 	done, err := glogger.StartLogForwarder(glog, post_cursor)
 	<-done
