@@ -1,8 +1,8 @@
 package glogger
 
 import (
-    "context"
-    "cloud.google.com/go/logging"
+	"cloud.google.com/go/logging"
+	"context"
 	"log"
 	"os"
 )
@@ -41,7 +41,7 @@ func StartLogForwarder(
 			severity := logging.ParseSeverity(entry.LevelName)
 			logger.Log(logging.Entry{
 				Severity: severity,
-				Payload: entry.raw_data,
+				Payload:  entry.raw_data,
 			})
 			count += 1
 		}

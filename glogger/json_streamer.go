@@ -3,6 +3,7 @@ package glogger
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"strconv"
@@ -66,7 +67,7 @@ func (r *LogReader) StartStream(channel_size int) <-chan *LogEntry {
 
 	r.events = make(chan *LogEntry, channel_size)
 
-	streamer := func() {
+	go func() {
 		defer close(r.events)
 
 		for {
@@ -77,9 +78,8 @@ func (r *LogReader) StartStream(channel_size int) <-chan *LogEntry {
 				r.events <- entry
 			}
 		}
-	}
+	}()
 
-	go streamer()
 	return r.events
 }
 
@@ -88,7 +88,7 @@ func (r *LogReader) read_entry() (*LogEntry, error) {
 		return nil, END_OF_STREAM
 	}
 
-	var v map[string]string
+	var v map[string]interface{}
 	if err := r.decoder.Decode(&v); err != nil {
 		return nil, err
 	}
@@ -96,14 +96,14 @@ func (r *LogReader) read_entry() (*LogEntry, error) {
 	entry := new(LogEntry)
 	entry.raw_data = v
 
-	entry.Message = v["MESSAGE"]
-	entry.Cursor = v["__CURSOR"]
+	entry.Message = fmt.Sprintf("%v", v["MESSAGE"])
+	entry.Cursor = v["__CURSOR"].(string)
 
 	if m, present := v["PRIORITY"]; !present {
 		entry.Level = DEFAULT_LOG_LEVEL
 		entry.LevelName = LOG_LEVELS[DEFAULT_LOG_LEVEL]
 
-	} else if i, err := strconv.Atoi(m); err != nil {
+	} else if i, err := strconv.Atoi(m.(string)); err != nil {
 		log.Printf("could not parse priority %s", m)
 		entry.Level = DEFAULT_LOG_LEVEL
 		entry.LevelName = LOG_LEVELS[DEFAULT_LOG_LEVEL]

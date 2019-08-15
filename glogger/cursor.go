@@ -3,8 +3,8 @@ package glogger
 import (
 	"bytes"
 	"errors"
-	"io"
 	"fmt"
+	"io"
 	"log"
 	"os"
 )
