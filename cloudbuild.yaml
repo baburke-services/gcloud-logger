@@ -7,6 +7,10 @@ steps:
   - name: 'gcr.io/cloud-builders/go:debian'
     args: ['get', '-u', 'cloud.google.com/go/logging']
   - name: 'gcr.io/cloud-builders/go:debian'
+    args: ['get', '-u', 'golang.org/x/oauth2/google']
+  - name: 'gcr.io/cloud-builders/go:debian'
+    args: ['get', '-u', 'google.golang.org/api/compute/v1']
+  - name: 'gcr.io/cloud-builders/go:debian'
     args: ['install', '.']
   - name: 'gcr.io/cloud-builders/go:debian'
     args: ['test', '-v', './glogger']
