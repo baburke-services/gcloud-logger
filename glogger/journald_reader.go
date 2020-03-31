@@ -15,32 +15,11 @@ type execCommand interface {
 	StdoutPipe() (io.ReadCloser, error)
 	Start() error
 	Wait() error
-	GetArgs() []string
 }
 
 type JournaldReader struct {
 	Reader  io.Reader
 	command execCommand
-}
-
-type journaldExec struct {
-	cmd *exec.Cmd
-}
-
-func (r *journaldExec) StdoutPipe() (io.ReadCloser, error) {
-	return r.cmd.StdoutPipe()
-}
-
-func (r *journaldExec) Start() error {
-	return r.cmd.Start()
-}
-
-func (r *journaldExec) Wait() error {
-	return r.cmd.Wait()
-}
-
-func (r *journaldExec) GetArgs() []string {
-	return r.cmd.Args
 }
 
 func NewJournaldReader(cursor string, follow bool) *JournaldReader {
@@ -56,9 +35,7 @@ func NewJournaldReader(cursor string, follow bool) *JournaldReader {
 		args = append(args, "--follow")
 	}
 
-	command := new(journaldExec)
-	command.cmd = exec.Command(name, args...)
-	reader.command = command
+	reader.command = exec.Command(name, args...)
 
 	return reader
 }

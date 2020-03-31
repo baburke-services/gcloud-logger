@@ -3,18 +3,19 @@ package glogger
 import (
 	"errors"
 	"io"
+	"os/exec"
 	"reflect"
 	"testing"
 )
 
 func TestNewJournaldReaderNoCursorNoFollow(t *testing.T) {
 	reader := NewJournaldReader("", false)
-	args := reader.command.GetArgs()
+	cmd := reader.command.(*exec.Cmd)
 	expected_args := []string{"journalctl", "--output", "json"}
 
-	if !reflect.DeepEqual(args, expected_args) {
+	if !reflect.DeepEqual(cmd.Args, expected_args) {
 		t.Log("bad command args")
-		t.Log("actual:", args)
+		t.Log("actual:", cmd.Args)
 		t.Log("expected:", expected_args)
 		t.Fail()
 	}
@@ -22,30 +23,30 @@ func TestNewJournaldReaderNoCursorNoFollow(t *testing.T) {
 
 func TestNewJournaldReaderCursor(t *testing.T) {
 	reader := NewJournaldReader("test_cursor", false)
-	args := reader.command.GetArgs()
-	for i, v := range args {
+	cmd := reader.command.(*exec.Cmd)
+	for i, v := range cmd.Args {
 		if v != "--cursor" {
 			continue
 		}
-		if i+1 < len(args) && args[i+1] == "test_cursor" {
+		if i+1 < len(cmd.Args) && cmd.Args[i+1] == "test_cursor" {
 			return
 		}
 	}
 	t.Log("cursor arguments not in args")
-	t.Log("actual:", args)
+	t.Log("actual:", cmd.Args)
 	t.FailNow()
 }
 
 func TestNewJournaldReaderFollow(t *testing.T) {
 	reader := NewJournaldReader("", true)
-	args := reader.command.GetArgs()
-	for _, v := range args {
+	cmd := reader.command.(*exec.Cmd)
+	for _, v := range cmd.Args {
 		if v == "--follow" {
 			return
 		}
 	}
 	t.Log("follow arguments not in args")
-	t.Log("actual:", args)
+	t.Log("actual:", cmd.Args)
 	t.FailNow()
 }
 
@@ -64,10 +65,6 @@ func (c *mock_jr_command) Start() error {
 func (c *mock_jr_command) Wait() error {
 	return c.wait_error
 }
-func (c *mock_jr_command) GetArgs() []string {
-	return []string{}
-}
-
 func TestJRStart(t *testing.T) {
 	reader := new(JournaldReader)
 	command := new(mock_jr_command)
