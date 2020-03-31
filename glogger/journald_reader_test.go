@@ -52,6 +52,7 @@ func TestNewJournaldReaderFollow(t *testing.T) {
 type mock_jr_command struct {
 	stdout_error error
 	start_error  error
+	wait_error   error
 }
 
 func (c *mock_jr_command) StdoutPipe() (io.ReadCloser, error) {
@@ -61,7 +62,7 @@ func (c *mock_jr_command) Start() error {
 	return c.start_error
 }
 func (c *mock_jr_command) Wait() error {
-	return nil
+	return c.wait_error
 }
 func (c *mock_jr_command) GetArgs() []string {
 	return []string{}
@@ -100,5 +101,20 @@ func TestJRStartStartFail(t *testing.T) {
 	result := reader.Start()
 	if result != EXECUTE_FAILED {
 		t.Error("Start() gave the wrong error:", result)
+	}
+}
+
+func TestJRCloseReturnsWait(t *testing.T) {
+	return_value := errors.New("mock error")
+	command := mock_jr_command{
+		start_error:  nil,
+		stdout_error: nil,
+		wait_error:   return_value,
+	}
+	reader := JournaldReader{
+		command: &command,
+	}
+	if result := reader.Close(); result != return_value {
+		t.Error("Wait() gave wrong return_value:", result)
 	}
 }
