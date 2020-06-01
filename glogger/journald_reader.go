@@ -7,23 +7,47 @@ import (
 )
 
 var (
-	OPEN_STDOUT_FAILED = errors.New("Failed to open Stdout pipe")
-	EXECUTE_FAILED     = errors.New("Failed to start command")
+	ErrNoProcessStarted = errors.New("No process started")
 )
 
 type execCommand interface {
 	StdoutPipe() (io.ReadCloser, error)
 	Start() error
 	Wait() error
+	Kill() error
+	Args() []string
+}
+
+type builtinCommand struct {
+	command *exec.Cmd
+}
+
+func (c *builtinCommand) StdoutPipe() (io.ReadCloser, error) {
+	return c.command.StdoutPipe()
+}
+
+func (c *builtinCommand) Start() error {
+	return c.command.Start()
+}
+
+func (c *builtinCommand) Wait() error {
+	return c.command.Wait()
+}
+
+func (c *builtinCommand) Kill() error {
+	return c.command.Process.Kill()
+}
+
+func (c *builtinCommand) Args() []string {
+	return c.command.Args
 }
 
 type JournaldReader struct {
-	Reader  io.Reader
+	reader  io.Reader
 	command execCommand
 }
 
 func NewJournaldReader(cursor string, follow bool) *JournaldReader {
-	reader := new(JournaldReader)
 	name := "journalctl"
 	args := []string{"--output", "json"}
 
@@ -35,31 +59,39 @@ func NewJournaldReader(cursor string, follow bool) *JournaldReader {
 		args = append(args, "--follow")
 	}
 
-	reader.command = exec.Command(name, args...)
+	command := &builtinCommand{
+		command: exec.Command(name, args...),
+	}
+
+	reader := &JournaldReader{
+		reader:  nil,
+		command: command,
+	}
 
 	return reader
 }
 
 func (r *JournaldReader) Start() error {
-	logger := new_logger(nil)
 	reader, err := r.command.StdoutPipe()
 	if err != nil {
-		logger.Print("could not open stdout pipe:", err)
-		return OPEN_STDOUT_FAILED
+		return err
 	}
-	r.Reader = reader
+	r.reader = reader
 
 	if err := r.command.Start(); err != nil {
-		logger.Print("failed to execute command:", err)
-		return EXECUTE_FAILED
+		return err
 	}
 
 	return nil
 }
 
+// Close Kill any existing sub-process, wait for it, and return any error
 func (r *JournaldReader) Close() error {
-	err := r.command.Wait()
-	return err
+	if r.reader == nil {
+		return ErrNoProcessStarted
+	}
+	r.command.Kill()
+	return r.command.Wait()
 }
 
 // vim: noexpandtab

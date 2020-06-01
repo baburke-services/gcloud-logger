@@ -3,115 +3,138 @@ package glogger
 import (
 	"errors"
 	"io"
-	"os/exec"
 	"reflect"
 	"testing"
 )
 
-func TestNewJournaldReaderNoCursorNoFollow(t *testing.T) {
-	reader := NewJournaldReader("", false)
-	cmd := reader.command.(*exec.Cmd)
-	expected_args := []string{"journalctl", "--output", "json"}
-
-	if !reflect.DeepEqual(cmd.Args, expected_args) {
-		t.Log("bad command args")
-		t.Log("actual:", cmd.Args)
-		t.Log("expected:", expected_args)
-		t.Fail()
-	}
+func TestNewJournaldReader(t *testing.T) {
+	t.Run(
+		"base", testNewJournaldReaderArgs(
+			"", false, []string{"journalctl", "--output", "json"},
+		),
+	)
+	t.Run(
+		"cursor", testNewJournaldReaderArgs(
+			"something",
+			false,
+			[]string{"journalctl", "--output", "json", "--cursor", "something"},
+		),
+	)
+	t.Run(
+		"follow", testNewJournaldReaderArgs(
+			"", true, []string{"journalctl", "--output", "json", "--follow"},
+		),
+	)
 }
 
-func TestNewJournaldReaderCursor(t *testing.T) {
-	reader := NewJournaldReader("test_cursor", false)
-	cmd := reader.command.(*exec.Cmd)
-	for i, v := range cmd.Args {
-		if v != "--cursor" {
-			continue
-		}
-		if i+1 < len(cmd.Args) && cmd.Args[i+1] == "test_cursor" {
-			return
-		}
-	}
-	t.Log("cursor arguments not in args")
-	t.Log("actual:", cmd.Args)
-	t.FailNow()
-}
-
-func TestNewJournaldReaderFollow(t *testing.T) {
-	reader := NewJournaldReader("", true)
-	cmd := reader.command.(*exec.Cmd)
-	for _, v := range cmd.Args {
-		if v == "--follow" {
-			return
+func testNewJournaldReaderArgs(
+	cursor string, follow bool, expectedArgs []string,
+) func(*testing.T) {
+	testingFunction := func(t *testing.T) {
+		reader := NewJournaldReader(cursor, follow)
+		actualArgs := reader.command.Args()
+		if !reflect.DeepEqual(actualArgs, expectedArgs) {
+			t.Log("NewJournaldReader(): bad command args")
+			t.Log("actual:", actualArgs)
+			t.Log("expected:", expectedArgs)
+			t.Fail()
 		}
 	}
-	t.Log("follow arguments not in args")
-	t.Log("actual:", cmd.Args)
-	t.FailNow()
+
+	return testingFunction
 }
 
-type mock_jr_command struct {
+type mockJRCommand struct {
 	stdout_error error
 	start_error  error
 	wait_error   error
+	kill_error   error
+	args         []string
 }
 
-func (c *mock_jr_command) StdoutPipe() (io.ReadCloser, error) {
+func (c *mockJRCommand) StdoutPipe() (io.ReadCloser, error) {
 	return nil, c.stdout_error
 }
-func (c *mock_jr_command) Start() error {
+func (c *mockJRCommand) Start() error {
 	return c.start_error
 }
-func (c *mock_jr_command) Wait() error {
+func (c *mockJRCommand) Wait() error {
 	return c.wait_error
 }
+func (c *mockJRCommand) Kill() error {
+	return c.kill_error
+}
+func (c *mockJRCommand) Args() []string {
+	return c.args
+}
+
 func TestJRStart(t *testing.T) {
-	reader := new(JournaldReader)
-	command := new(mock_jr_command)
-	command.stdout_error = nil
-	command.start_error = nil
-	reader.command = command
-	result := reader.Start()
-	if result != nil {
-		t.Error("Start() result not nil:", result)
-	}
+	knownError := errors.New("test error")
+	t.Run("base", testJRStart(&mockJRCommand{}, nil))
+	t.Run(
+		"stdout fail", testJRStart(
+			&mockJRCommand{stdout_error: knownError}, knownError,
+		),
+	)
+	t.Run(
+		"start fail", testJRStart(
+			&mockJRCommand{start_error: knownError}, knownError,
+		),
+	)
 }
 
-func TestJRStartStdoutFail(t *testing.T) {
-	reader := new(JournaldReader)
-	command := new(mock_jr_command)
-	command.stdout_error = errors.New("mock error")
-	command.start_error = nil
-	reader.command = command
-	result := reader.Start()
-	if result != OPEN_STDOUT_FAILED {
-		t.Error("Start() gave the wrong error:", result)
+func testJRStart(command execCommand, expectedError error) func(*testing.T) {
+	testingFunction := func(t *testing.T) {
+		reader := &JournaldReader{
+			command: command,
+			reader:  nil,
+		}
+		actualError := reader.Start()
+		if actualError != expectedError {
+			t.Errorf("Start(): returned %q, expected %q", actualError, expectedError)
+		}
 	}
+	return testingFunction
 }
 
-func TestJRStartStartFail(t *testing.T) {
-	reader := new(JournaldReader)
-	command := new(mock_jr_command)
-	command.stdout_error = nil
-	command.start_error = errors.New("mock error")
-	reader.command = command
-	result := reader.Start()
-	if result != EXECUTE_FAILED {
-		t.Error("Start() gave the wrong error:", result)
-	}
+type mockReader struct{}
+
+func (r *mockReader) Read(b []byte) (int, error) { return 0, nil }
+
+func TestJRClose(t *testing.T) {
+	knownError := errors.New("test error")
+	t.Run(
+		"nil reader",
+		testJRClose(&JournaldReader{}, ErrNoProcessStarted),
+	)
+	t.Run(
+		"kill ignored",
+		testJRClose(
+			&JournaldReader{
+				reader:  &mockReader{},
+				command: &mockJRCommand{kill_error: knownError},
+			},
+			nil,
+		),
+	)
+	t.Run(
+		"wait returned",
+		testJRClose(
+			&JournaldReader{
+				reader:  &mockReader{},
+				command: &mockJRCommand{wait_error: knownError},
+			},
+			knownError,
+		),
+	)
 }
 
-func TestJRCloseReturnsWait(t *testing.T) {
-	return_value := errors.New("mock error")
-	command := mock_jr_command{
-		start_error:  nil,
-		stdout_error: nil,
-		wait_error:   return_value,
+func testJRClose(r *JournaldReader, expectedError error) func(*testing.T) {
+	testingFunction := func(t *testing.T) {
+		actualError := r.Close()
+		if actualError != expectedError {
+			t.Errorf("Close(): expected %q, actual %q", expectedError, actualError)
+		}
 	}
-	reader := JournaldReader{
-		command: &command,
-	}
-	if result := reader.Close(); result != return_value {
-		t.Error("Wait() gave wrong return_value:", result)
-	}
+	return testingFunction
 }
